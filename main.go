@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/0xF0D0/c8emulator/renderer"
@@ -10,7 +11,17 @@ func main() {
 	chip8Renderer := renderer.Initialize()
 
 	go func() {
-		//time.Sleep(2*time.Second)
+		for {
+			select {
+			case k := <-chip8Renderer.KeyboardDown:
+				fmt.Println("key down", k)
+			case k := <-chip8Renderer.KeyboardUp:
+				fmt.Println("key up", k)
+			}
+		}
+	}()
+
+	go func() {
 		b := make([]byte, 64*32)
 		for i := 0; i < 64*32; i++ {
 			b[i] = byte(i % 2)

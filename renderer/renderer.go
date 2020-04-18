@@ -7,12 +7,17 @@ import (
 )
 
 type Renderer struct {
-	screenData [32][64][3]byte
-	drawFlag   bool
+	KeyboardDown chan byte
+	KeyboardUp   chan byte
+	screenData   [32][64][3]byte
+	drawFlag     bool
 }
 
 func Initialize() *Renderer {
 	nr := &Renderer{}
+	nr.KeyboardDown = make(chan byte)
+	nr.KeyboardUp = make(chan byte)
+
 	glut.Init()
 	glut.InitDisplayMode(glut.SINGLE | glut.RGBA)
 	glut.InitWindowSize(640, 320)
@@ -20,8 +25,11 @@ func Initialize() *Renderer {
 	glut.ReshapeFunc(nr.reshape)
 	glut.DisplayFunc(nr.display)
 	glut.IdleFunc(nr.display)
+	glut.KeyboardFunc(nr.keyboardDown)
+	glut.KeyboardUpFunc(nr.keyboardUp)
 
-	glut.TexImage2DRGBByte(64, 32, unsafe.Pointer(&nr.screenData))
+	screenData := nr.screenData
+	glut.TexImage2DRGBByte(64, 32, unsafe.Pointer(&screenData[0]))
 	glut.SetTexParameteri()
 	glut.EnableTexture()
 
@@ -55,8 +63,9 @@ func (r *Renderer) RunMainLoop() {
 }
 
 func (r *Renderer) draw() {
+	screenData := r.screenData
 	glut.Clear()
-	glut.TexSubImage2DRGBByte(64, 32, unsafe.Pointer(&r.screenData))
+	glut.TexSubImage2DRGBByte(64, 32, unsafe.Pointer(&screenData[0]))
 	glut.DrawTexture(640, 320)
 	glut.SwapBuffers()
 }
@@ -75,4 +84,16 @@ func (r *Renderer) display() {
 		r.draw()
 		r.drawFlag = false
 	}
+}
+
+func (r *Renderer) keyboardDown(key byte, x, y int) {
+	go func() {
+		r.KeyboardDown <- key
+	}()
+}
+
+func (r *Renderer) keyboardUp(key byte, x, y int) {
+	go func() {
+		r.KeyboardUp <- key
+	}()
 }
