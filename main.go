@@ -1,62 +1,26 @@
 package main
 
 import (
-	"unsafe"
+	"time"
 
-	"github.com/0XF0D0/glut"
+	"github.com/0xF0D0/c8emulator/renderer"
 )
 
-var screenData [32][64][3]byte
-var cnt int = 0
-
 func main() {
-	glut.Init()
-	glut.InitDisplayMode(glut.SINGLE | glut.RGBA)
-	glut.InitWindowSize(640, 320)
-	glut.CreateWindow("c8 emulator")
-	glut.ReshapeFunc(reshape)
-	glut.DisplayFunc(display)
-	glut.IdleFunc(display)
+	chip8Renderer := renderer.Initialize()
 
-	glut.TexImage2DRGBByte(64, 32, unsafe.Pointer(&screenData))
-	glut.SetTexParameteri()
-	glut.EnableTexture()
-
-	glut.MainLoop()
-
-}
-
-func draw() {
-	glut.Clear()
-
-	for i := 0; i < 32; i++ {
-		for j := 0; j < 64; j++ {
-			for k := 0; k < 3; k++ {
-				screenData[i][j][k] = 122
-			}
+	go func() {
+		//time.Sleep(2*time.Second)
+		b := make([]byte, 64*32)
+		for i := 0; i < 64*32; i++ {
+			b[i] = byte(i % 2)
 		}
-	}
+		ch := make(chan []byte)
+		chip8Renderer.BindRenderInput(ch)
+		time.Sleep(2 * time.Second)
+		ch <- b
+	}()
 
-	glut.TexSubImage2DRGBByte(64, 32, unsafe.Pointer(&screenData))
-	glut.DrawTexture(640, 320)
-	glut.SwapBuffers()
-}
+	chip8Renderer.RunMainLoop()
 
-func reshape(width, height int) {
-	glut.ClearColor(0.0, 0.0, 0.5, 0.0)
-	glut.SetMatrixModeProjection()
-	glut.LoadIdentity()
-	glut.Ortho2D(width, height)
-	glut.SetMatrixModeModelView()
-	glut.ViewPort(width, height)
-}
-
-func display() {
-	if cnt < 100000 {
-		cnt++
-		return
-	} else {
-		draw()
-		cnt = 0
-	}
 }
