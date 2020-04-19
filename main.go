@@ -2,36 +2,27 @@ package main
 
 import (
 	"fmt"
-	"time"
+	"os"
 
+	"github.com/0xF0D0/c8emulator/chip8"
 	"github.com/0xF0D0/c8emulator/renderer"
 )
 
 func main() {
 	chip8Renderer := renderer.Initialize()
+	emulator := chip8.Initialize()
+	args := os.Args
 
-	go func() {
-		for {
-			select {
-			case k := <-chip8Renderer.KeyboardDown:
-				fmt.Println("key down", k)
-			case k := <-chip8Renderer.KeyboardUp:
-				fmt.Println("key up", k)
-			}
-		}
-	}()
+	if len(args) < 2 {
+		fmt.Println("Usage: c8emulator chip8Application")
+		return
+	}
+	emulator.LoadGame(args[1])
+	emulator.BindKeyboardDown(chip8Renderer.KeyboardDown)
+	emulator.BindKeyboardUp(chip8Renderer.KeyboardUp)
 
-	go func() {
-		b := make([]byte, 64*32)
-		for i := 0; i < 64*32; i++ {
-			b[i] = byte(i % 2)
-		}
-		ch := make(chan []byte)
-		chip8Renderer.BindRenderInput(ch)
-		time.Sleep(2 * time.Second)
-		ch <- b
-	}()
-
+	chip8Renderer.EmulateCycle = emulator.EmulateCycle
+	chip8Renderer.BindRenderInput(emulator.GfxChannel())
 	chip8Renderer.RunMainLoop()
 
 }
