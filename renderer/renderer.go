@@ -1,3 +1,4 @@
+//Package renderer implements renderer for chip8 using glut
 package renderer
 
 import (
@@ -6,13 +7,15 @@ import (
 	"github.com/0xF0D0/glut"
 )
 
+//Renderer struct
 type Renderer struct {
-	KeyboardDown chan byte
-	KeyboardUp   chan byte
+	KeyboardDown chan byte //keyboarddown channel
+	KeyboardUp   chan byte //keyboardup channel
 	screenData   [32][64][3]byte
 	drawFlag     bool
 }
 
+//Initialize initializes Renderer
 func Initialize() *Renderer {
 	nr := &Renderer{}
 	nr.KeyboardDown = make(chan byte)
@@ -36,6 +39,10 @@ func Initialize() *Renderer {
 	return nr
 }
 
+/*
+BindRenderInput binds with channel of slice of bytes.
+Slice of bytes represents chip8's gfx.
+*/
 func (r *Renderer) BindRenderInput(input <-chan []byte) {
 	go func() {
 		for v := range input {
@@ -58,6 +65,7 @@ func (r *Renderer) BindRenderInput(input <-chan []byte) {
 	}()
 }
 
+//RunMainLoop runs mainloop for glut
 func (r *Renderer) RunMainLoop() {
 	glut.MainLoop()
 }
