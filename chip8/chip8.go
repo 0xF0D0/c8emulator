@@ -346,7 +346,7 @@ func (c *Chip8) EmulateCycle() {
 			c.memory[c.indexRegister+2] = c.v[(c.opcode&0x0F00)>>8] % 10
 			c.pc += 2
 		case 0x0055: // 0xFX55: Store V0 to VX in memory starting at address I
-			for i := uint16(0); i < (c.opcode&0x0F00)>>8; i++ {
+			for i := uint16(0); i <= (c.opcode&0x0F00)>>8; i++ {
 				c.memory[c.indexRegister+i] = c.v[i]
 			}
 
@@ -354,7 +354,7 @@ func (c *Chip8) EmulateCycle() {
 			c.indexRegister += ((c.opcode & 0x0F00) >> 8) + 1
 			c.pc += 2
 		case 0x0065: // 0xFX65: Load V0 to VX from memory starting at address I
-			for i := uint16(0); i < (c.opcode&0x0F00)>>8; i++ {
+			for i := uint16(0); i <= (c.opcode&0x0F00)>>8; i++ {
 				c.v[i] = c.memory[c.indexRegister+i]
 			}
 
