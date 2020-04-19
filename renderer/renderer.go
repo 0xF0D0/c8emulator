@@ -9,6 +9,7 @@ import (
 
 //Renderer struct
 type Renderer struct {
+	EmulateCycle func()    //Emulate function
 	KeyboardDown chan byte //keyboarddown channel
 	KeyboardUp   chan byte //keyboardup channel
 	screenData   [32][64][3]byte
@@ -88,6 +89,7 @@ func (r *Renderer) reshape(width, height int) {
 }
 
 func (r *Renderer) display() {
+	r.EmulateCycle()
 	if r.drawFlag {
 		r.draw()
 		r.drawFlag = false

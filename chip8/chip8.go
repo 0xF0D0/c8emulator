@@ -56,9 +56,100 @@ func Initialize() *Chip8 {
 	return c8
 }
 
+//BindKeyboardDown binds keyboard down
+func (c *Chip8) BindKeyboardDown(input <-chan byte) {
+	go func() {
+		for key := range input {
+			switch key {
+			case 27:
+				os.Exit(0)
+			case '1':
+				c.key[0x1] = 1
+			case '2':
+				c.key[0x2] = 1
+			case '3':
+				c.key[0x3] = 1
+			case '4':
+				c.key[0xC] = 1
+			case 'q':
+				c.key[0x4] = 1
+			case 'w':
+				c.key[0x5] = 1
+			case 'e':
+				c.key[0x6] = 1
+			case 'r':
+				c.key[0xD] = 1
+			case 'a':
+				c.key[0x7] = 1
+			case 's':
+				c.key[0x8] = 1
+			case 'd':
+				c.key[0x9] = 1
+			case 'f':
+				c.key[0xE] = 1
+			case 'z':
+				c.key[0xA] = 1
+			case 'x':
+				c.key[0x0] = 1
+			case 'c':
+				c.key[0xB] = 1
+			case 'v':
+				c.key[0xF] = 1
+			default:
+				break
+			}
+		}
+	}()
+}
+
+//BindKeyboardUp binds keyboard up
+func (c *Chip8) BindKeyboardUp(input <-chan byte) {
+	go func() {
+		for key := range input {
+			switch key {
+			case '1':
+				c.key[0x1] = 0
+			case '2':
+				c.key[0x2] = 0
+			case '3':
+				c.key[0x3] = 0
+			case '4':
+				c.key[0xC] = 0
+			case 'q':
+				c.key[0x4] = 0
+			case 'w':
+				c.key[0x5] = 0
+			case 'e':
+				c.key[0x6] = 0
+			case 'r':
+				c.key[0xD] = 0
+			case 'a':
+				c.key[0x7] = 0
+			case 's':
+				c.key[0x8] = 0
+			case 'd':
+				c.key[0x9] = 0
+			case 'f':
+				c.key[0xE] = 0
+			case 'z':
+				c.key[0xA] = 0
+			case 'x':
+				c.key[0x0] = 0
+			case 'c':
+				c.key[0xB] = 0
+			case 'v':
+				c.key[0xF] = 0
+			default:
+				break
+			}
+		}
+	}()
+}
+
 //EmulateCycle emulates one instruction.
 func (c *Chip8) EmulateCycle() {
-	c.opcode = uint16(c.memory[c.pc]<<8) | uint16(c.memory[c.pc+1])
+	c.opcode = uint16(c.memory[c.pc])<<8 | uint16(c.memory[c.pc+1])
+	fmt.Printf("opcode : 0x%X\n", c.opcode)
 	switch c.opcode & 0xF000 {
 	case 0x0000:
 		switch c.opcode & 0x000F {
@@ -165,7 +256,7 @@ func (c *Chip8) EmulateCycle() {
 		c.pc += 2
 	case 0xB000: // 0xBNNN: Jump to address "NNN plus V0"
 		c.pc = (c.opcode & 0x0FFF) + uint16(c.v[0])
-	case 0xC000: // 0xCNNN: Set VX to random number AND NN
+	case 0xC000: // 0xCXNN: Set VX to random number AND NN
 		c.v[(c.opcode&0x0F00)>>8] = byte(rand.Intn(0xFF)) & byte(c.opcode&0x00FF)
 		c.pc += 2
 	case 0xD000:
@@ -175,6 +266,7 @@ func (c *Chip8) EmulateCycle() {
 		x := uint16(c.v[(c.opcode&0x0F00)>>8])
 		y := uint16(c.v[(c.opcode&0x00F0)>>4])
 		height := c.opcode & 0x000F
+		fmt.Println(x, y, height)
 		c.v[0xF] = 0
 
 		for yline := uint16(0); yline < height; yline++ {
@@ -244,26 +336,27 @@ func (c *Chip8) EmulateCycle() {
 			c.pc += 2
 		case 0x0029: // 0xFX29: Set I to the location of charater in VX
 			c.indexRegister = uint16(c.v[(c.opcode&0x0F00)>>8]) * 0x5
+			c.pc += 2
 		case 0x0033: // 0xFX33: Store Binary-coded decimal representation of VX at I
 			c.memory[c.indexRegister] = c.v[(c.opcode&0x0F00)>>8] / 100
 			c.memory[c.indexRegister+1] = (c.v[(c.opcode&0x0F00)>>8] / 10) % 10
 			c.memory[c.indexRegister+2] = (c.v[(c.opcode&0x0F00)>>8] % 100) % 10
 			c.pc += 2
 		case 0x0055: // 0xFX55: Store V0 to VX in memory starting at address I
-			for i := uint16(0); i < (c.opcode*0x0F00)>>8; i++ {
+			for i := uint16(0); i < (c.opcode&0x0F00)>>8; i++ {
 				c.memory[c.indexRegister+i] = c.v[i]
 			}
 
 			// Then I is set to I + X + 1
-			c.indexRegister += (c.opcode&0x0F00)>>8 + 1
+			c.indexRegister += ((c.opcode & 0x0F00) >> 8) + 1
 			c.pc += 2
 		case 0x0065: // 0xFX65: Load V0 to VX from memory starting at address I
-			for i := uint16(0); i < (c.opcode*0x0F00)>>8; i++ {
+			for i := uint16(0); i < (c.opcode&0x0F00)>>8; i++ {
 				c.v[i] = c.memory[c.indexRegister+i]
 			}
 
 			// Then I is set to I + X + 1
-			c.indexRegister += (c.opcode&0x0F00)>>8 + 1
+			c.indexRegister += ((c.opcode & 0x0F00) >> 8) + 1
 			c.pc += 2
 		default:
 			log.Fatalf("Unknown opcode: 0x%X", c.opcode)
