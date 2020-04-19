@@ -149,7 +149,7 @@ func (c *Chip8) BindKeyboardUp(input <-chan byte) {
 //EmulateCycle emulates one instruction.
 func (c *Chip8) EmulateCycle() {
 	c.opcode = uint16(c.memory[c.pc])<<8 | uint16(c.memory[c.pc+1])
-	fmt.Printf("opcode : 0x%X\n", c.opcode)
+
 	switch c.opcode & 0xF000 {
 	case 0x0000:
 		switch c.opcode & 0x000F {
@@ -266,13 +266,16 @@ func (c *Chip8) EmulateCycle() {
 		x := uint16(c.v[(c.opcode&0x0F00)>>8])
 		y := uint16(c.v[(c.opcode&0x00F0)>>4])
 		height := c.opcode & 0x000F
-		fmt.Println(x, y, height)
+
 		c.v[0xF] = 0
 
 		for yline := uint16(0); yline < height; yline++ {
 			pixel := c.memory[c.indexRegister+yline]
 			for xline := uint16(0); xline < 8; xline++ {
 				if (pixel & (0x80 >> xline)) != 0 {
+					if x+xline+(y+yline)*64 >= 2048 {
+						continue
+					}
 					if c.gfx[x+xline+(y+yline)*64] == 1 {
 						c.v[0xF] = 1
 					}
@@ -340,7 +343,7 @@ func (c *Chip8) EmulateCycle() {
 		case 0x0033: // 0xFX33: Store Binary-coded decimal representation of VX at I
 			c.memory[c.indexRegister] = c.v[(c.opcode&0x0F00)>>8] / 100
 			c.memory[c.indexRegister+1] = (c.v[(c.opcode&0x0F00)>>8] / 10) % 10
-			c.memory[c.indexRegister+2] = (c.v[(c.opcode&0x0F00)>>8] % 100) % 10
+			c.memory[c.indexRegister+2] = c.v[(c.opcode&0x0F00)>>8] % 10
 			c.pc += 2
 		case 0x0055: // 0xFX55: Store V0 to VX in memory starting at address I
 			for i := uint16(0); i < (c.opcode&0x0F00)>>8; i++ {
